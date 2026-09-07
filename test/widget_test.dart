@@ -1,30 +1,26 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:frutiapp_web/main.dart';
+import 'package:frutiapp_web/models/registro_acceso.dart';
+import 'package:frutiapp_web/services/bitacora_service.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('RegistroAcceso convierte correctamente a JSON', () {
+    final registro = RegistroAcceso(
+      usuario: 'admin@frutidemo.com',
+      fechaHora: DateTime.parse('2026-09-08T09:35:00'),
+      resultado: 'AUTORIZADO',
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final restaurado = RegistroAcceso.fromJson(registro.toJson());
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(restaurado.usuario, 'admin@frutidemo.com');
+    expect(restaurado.resultado, 'AUTORIZADO');
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('BitacoraService rechaza estructuras JSON inv\u00e1lidas', () {
+    expect(
+      () => BitacoraService().importarJson('{"usuario":"admin"}'),
+      throwsFormatException,
+    );
   });
 }

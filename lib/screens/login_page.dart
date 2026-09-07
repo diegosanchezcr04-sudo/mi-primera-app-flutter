@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/access_record.dart';
-import '../services/access_log_service.dart';
+import '../models/registro_acceso.dart';
+import '../services/bitacora_service.dart';
+import '../services/preferences_service.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,41 +16,68 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _recordarme = false;
-  
-  final _logService = AccessLogService(); // Servicio global
+  bool _ocultarPassword = true;
+  final _bitacoraService = BitacoraService();
+  final _preferencesService = PreferencesService();
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarUsuarioRecordado();
+  }
+
+  Future<void> _cargarUsuarioRecordado() async {
+    final usuario = await _preferencesService.obtenerUsuarioRecordado();
+    final recordarme = await _preferencesService.estaRecordado();
+    if (!mounted) return;
+    setState(() {
+      _emailController.text = usuario ?? '';
+      _recordarme = recordarme;
+    });
+  }
 
   String? _validarCorreo(String? value) {
-    if (value == null || value.isEmpty) return 'Ingrese el correo';
+    if (value == null || value.trim().isEmpty) return 'Ingrese el correo';
     if (!value.contains('@') || !value.contains('.')) return 'Correo no válido';
     return null;
   }
 
   String? _validarPassword(String? value) {
-    if (value == null || value.length < 6) {
-      return 'La contraseña debe tener al menos 6 caracteres';
-    }
+    if (value == null || value.isEmpty) return 'Ingrese la contraseña';
     return null;
   }
 
-  void _ingresar() {
+  Future<void> _ingresar() async {
     final esFormValido = _formKey.currentState!.validate();
     final usuario = _emailController.text.trim();
     final password = _passwordController.text;
 
-    // Validación de credenciales de prueba
+    // Credenciales simuladas; no se almacena ninguna contraseña.
     final exitoso = esFormValido && usuario == 'admin@frutidemo.com' && password == '123456';
 
-    // Registro obligatorio en la bitácora (Sin guardar contraseña)
-    _logService.add(
-      AccessRecord(
+    _bitacoraService.agregar(
+      RegistroAcceso(
         usuario: usuario,
         fechaHora: DateTime.now(),
-        exitoso: exitoso,
+        resultado: exitoso ? 'AUTORIZADO' : 'RECHAZADO',
       ),
     );
 
+    if (_recordarme) {
+      await _preferencesService.guardarUsuario(usuario);
+    } else {
+      await _preferencesService.eliminarUsuarioRecordado();
+    }
+    if (!mounted) return;
+
     if (exitoso) {
-      Navigator.push(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Acceso autorizado'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomePage()),
       );
@@ -101,10 +129,23 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
+                      obscureText: _ocultarPassword,
+                      decoration: InputDecoration(
                         labelText: 'Contraseña',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          tooltip: _ocultarPassword
+                              ? 'Mostrar contraseña'
+                              : 'Ocultar contraseña',
+                          icon: Icon(
+                            _ocultarPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() => _ocultarPassword = !_ocultarPassword);
+                          },
+                        ),
                       ),
                       validator: _validarPassword,
                     ),

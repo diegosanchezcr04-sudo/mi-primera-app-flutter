@@ -1,0 +1,12 @@
+[
+  {
+    "usuario": "admin@frutidemo.com",
+    "fechaHora": "2026-09-08T08:10:00",
+    "resultado": "AUTORIZADO"
+  },
+  {
+    "usuario": "estudiante@ejemplo.com",
+    "fechaHora": "2026-09-08T08:15:00",
+    "resultado": "RECHAZADO"
+  }
+]

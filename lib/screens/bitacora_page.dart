@@ -3,7 +3,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
 
-import '../services/access_log_service.dart';
+import '../services/bitacora_service.dart';
 
 class BitacoraPage extends StatefulWidget {
   const BitacoraPage({super.key});
@@ -13,7 +13,7 @@ class BitacoraPage extends StatefulWidget {
 }
 
 class _BitacoraPageState extends State<BitacoraPage> {
-  final _logService = AccessLogService();
+  final _bitacoraService = BitacoraService();
 
   void _descargarJson(String contenido) {
     final base64 = base64Encode(utf8.encode(contenido));
@@ -24,7 +24,7 @@ class _BitacoraPageState extends State<BitacoraPage> {
   }
 
   void _exportarBitacora() {
-    _descargarJson(_logService.exportJson());
+    _descargarJson(_bitacoraService.exportarJson());
   }
 
   Future<void> _importarBitacora() async {
@@ -38,7 +38,7 @@ class _BitacoraPageState extends State<BitacoraPage> {
 
     try {
       final contenido = await file.readAsString();
-      _logService.importJson(contenido);
+      _bitacoraService.importarJson(contenido);
       setState(() {});
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,7 +49,7 @@ class _BitacoraPageState extends State<BitacoraPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('JSON inválido: ${e.message}')),
       );
-    } catch (_) {
+    } on Exception {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo leer el archivo')),
@@ -59,7 +59,7 @@ class _BitacoraPageState extends State<BitacoraPage> {
 
   @override
   Widget build(BuildContext context) {
-    final records = _logService.records;
+    final records = _bitacoraService.registros;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Bitácora de Accesos')),
@@ -97,18 +97,24 @@ class _BitacoraPageState extends State<BitacoraPage> {
                             return Card(
                               child: ListTile(
                                 leading: Icon(
-                                  r.exitoso ? Icons.check_circle : Icons.cancel,
-                                  color: r.exitoso ? Colors.green : Colors.red,
+                                  r.resultado == 'AUTORIZADO'
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color: r.resultado == 'AUTORIZADO'
+                                      ? Colors.green
+                                      : Colors.red,
                                 ),
                                 title: Text(
                                   r.usuario.isEmpty ? '(sin usuario)' : r.usuario,
                                   style: const TextStyle(fontWeight: FontWeight.bold),
                                 ),
-                                subtitle: Text(r.fechaHora.toString()),
+                                subtitle: Text(r.fechaHora.toLocal().toString()),
                                 trailing: Text(
-                                  r.exitoso ? 'OK' : 'FALLÓ',
+                                  r.resultado,
                                   style: TextStyle(
-                                    color: r.exitoso ? Colors.green : Colors.red,
+                                    color: r.resultado == 'AUTORIZADO'
+                                        ? Colors.green
+                                        : Colors.red,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
